@@ -2,7 +2,7 @@
 
 A JavaScript reimplementation of the classic Neko desktop pet for the web.
 
-[Live Demo](https://louisabraham.github.io/nekojs/) | [Usage](#usage) | [Github](https://github.com/louisabraham/nekojs)
+[Live Demo](https://louisabraham.github.io/nekojs/) | [Guided Demo](https://louisabraham.github.io/nekojs/guide.html) | [Usage](#usage) | [Github](https://github.com/louisabraham/nekojs)
 
 ## About
 
@@ -26,6 +26,7 @@ The original source code (in the `nkosrc4/` folder) was downloaded from [web.arc
 - ⚡ **Lightweight** - ~38KB uncompressed with sprites embedded (brotli compressed to ~14KB)
 - 🚀 **Zero dependencies** - Pure vanilla JavaScript
 - 🖱️ **Interactive** - Click to change behavior modes
+- 💬 **Optional page guide** - Visits annotated UI and explains nearby signals
 
 ## Usage
 
@@ -52,6 +53,82 @@ neko.start();
 neko.stop();
 neko.destroy();
 ```
+
+For integrations that need to direct Neko instead of following the cursor:
+
+```javascript
+neko.setPosition(24, 24); // Move immediately to a viewport position
+neko.setTarget(320, 180); // Run toward a viewport position
+```
+
+### Guided companion mode
+
+`createNekoGuide()` turns the same cat into an opt-in guide for a page. Neko
+rests in the bottom corner until clicked, then visits visible annotations in
+order. Targets are resolved again after scrolling or UI changes, so messages
+stay attached to the current position of the related element.
+
+Add semantic annotations anywhere in the page:
+
+```html
+<section id="review-queue">...</section>
+
+<i
+  data-neko-guide
+  data-neko-target="#review-queue"
+  data-neko-side="bottom"
+  data-neko-message="Three reviews need attention."
+></i>
+```
+
+Load the optional guide after `neko.js`, then create it:
+
+```html
+<script src="https://louisabraham.github.io/nekojs/neko.js"></script>
+<script src="https://louisabraham.github.io/nekojs/neko-guide.js"></script>
+<script>
+const guide = createNekoGuide({
+  messageDuration: 6000,
+  recallDuration: 60000,
+  nekoOptions: {
+    speed: 18,
+    fps: 60
+  }
+});
+</script>
+```
+
+The annotations are hidden automatically. Each one supports:
+
+| Attribute | Purpose |
+| --- | --- |
+| `data-neko-target` | CSS selector for the element Neko should visit |
+| `data-neko-message` | Message shown when Neko arrives |
+| `data-neko-side` | Preferred placement: `top`, `right`, `bottom`, or `left` |
+| `data-neko-closest` | Optional ancestor selector applied to the target |
+| `data-neko-group` | Optional route group for tabs or other UI states |
+
+For tabbed or filtered interfaces, return the active group and request a route
+refresh whenever the interface changes:
+
+```javascript
+let activeTab = "reviews";
+
+const guide = createNekoGuide({
+  getActiveGroup: () => activeTab
+});
+
+activeTab = "deployments";
+window.dispatchEvent(new Event("neko-guide:refresh"));
+```
+
+Elements inside a `hidden` or `aria-hidden="true"` container are skipped
+automatically. When a target is off screen, Neko waits at the corresponding
+viewport edge with a short scroll hint. After each message, a paw marker remains
+for one minute; selecting it replays the previous signal.
+
+The returned guide exposes `release()`, `dock()`, `toggle()`, `refresh()`, and
+`destroy()`.
 
 To _build_ (actually just package the sprites), run `python3 build.py` (requires Pillow).
 

@@ -259,6 +259,83 @@ strong {
   font-weight: 600;
 }
 
+/* Guided companion demo */
+.guide-demo-heading {
+  margin-bottom: 2rem;
+}
+
+.guide-demo-heading h1 {
+  margin-top: 0.5rem;
+}
+
+.guide-demo-kicker {
+  margin-bottom: 0;
+  color: var(--link-color);
+  font-family: "Press Start 2P", cursive;
+  font-size: 0.6rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.guide-demo-tabs {
+  display: inline-flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  border: 3px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-secondary);
+  padding: 0.35rem;
+}
+
+.guide-demo-tabs button {
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  padding: 0.6rem 0.9rem;
+  color: var(--text-secondary);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.guide-demo-tabs button.is-active {
+  background: white;
+  box-shadow: 2px 2px 0 var(--shadow);
+  color: var(--text-primary);
+}
+
+.guide-demo-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.guide-demo-grid article,
+.guide-demo-finish {
+  border: 3px solid var(--accent-blue);
+  border-radius: 10px;
+  background: white;
+  padding: 1rem;
+  box-shadow: 4px 4px 0 var(--shadow);
+}
+
+.guide-demo-grid article p,
+.guide-demo-finish p {
+  margin-top: 0.5rem;
+  margin-bottom: 0;
+}
+
+.guide-demo-spacer {
+  height: 65vh;
+  min-height: 420px;
+}
+
+@media (max-width: 600px) {
+  .guide-demo-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 em {
   color: var(--text-secondary);
   font-style: italic;

@@ -279,6 +279,28 @@
       this.element.style.top = Math.round(this.y) + "px";
     }
 
+    setPosition(x, y) {
+      const nextX = Math.max(0, Math.min(this.boundsWidth, x));
+      const nextY = Math.max(0, Math.min(this.boundsHeight, y));
+      this.x = nextX;
+      this.y = nextY;
+      this.logicX = nextX;
+      this.logicY = nextY;
+      this.prevLogicX = nextX;
+      this.prevLogicY = nextY;
+      this.targetX = nextX + SPRITE_SIZE / 2;
+      this.targetY = nextY + SPRITE_SIZE - 1;
+      this.oldTargetX = this.targetX;
+      this.oldTargetY = this.targetY;
+      this.updatePosition();
+    }
+
+    setTarget(x, y) {
+      this.mouseX = x;
+      this.mouseY = y;
+      this.hasMouseMoved = true;
+    }
+
     update() {
       // Track time accumulator for original tick timing
       // Original runs at 5 FPS (200ms per tick), we run at this.fps
