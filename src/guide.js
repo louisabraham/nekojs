@@ -9,7 +9,7 @@
 (function () {
   "use strict";
 
-  const GUIDE_SPRITE_SIZE = 32;
+  const DEFAULT_GUIDE_SPRITE_SIZE = 32;
   const GUIDE_STYLE_ID = "neko-guide-styles";
   const DEFAULT_IDLE_MESSAGES = [
     "I am not asleep. I am conserving dramatic energy.",
@@ -28,6 +28,7 @@
       }
 
       this.neko = neko;
+      this.spriteSize = neko.spriteSize || DEFAULT_GUIDE_SPRITE_SIZE;
       this.root = options.root || document;
       this.selector = options.selector || "[data-neko-guide]";
       this.getActiveGroup = options.getActiveGroup || null;
@@ -46,6 +47,10 @@
       this.scrollMessage =
         options.scrollMessage ||
         ((direction) => `Scroll ${direction} — there is more.`);
+      this.wakeLabel = options.wakeLabel || "Wake Neko";
+      this.restLabel = options.restLabel || "Let Neko rest";
+      this.recallLabel =
+        options.recallLabel || "Replay Neko's previous message";
       this.destroyNeko = options.destroyNeko !== false;
 
       this.stops = [];
@@ -111,7 +116,7 @@
       this.recallMarker.className = "neko-guide__recall";
       this.recallMarker.setAttribute(
         "aria-label",
-        "Replay Neko's previous message"
+        this.recallLabel
       );
       this.recallMarker.title = "Replay previous message";
       this.recallMarker.innerHTML = '<span aria-hidden="true">🐾</span>';
@@ -528,7 +533,7 @@
 
       const width = this.bubble.offsetWidth;
       const height = this.bubble.offsetHeight;
-      const centerX = this.neko.x + GUIDE_SPRITE_SIZE / 2;
+      const centerX = this.neko.x + this.spriteSize / 2;
       const left = Math.max(
         8,
         Math.min(centerX - width / 2, window.innerWidth - width - 8)
@@ -538,7 +543,7 @@
 
       this.bubble.style.left = `${left}px`;
       this.bubble.style.top = `${
-        fitsAbove ? above : this.neko.y + GUIDE_SPRITE_SIZE + 8
+        fitsAbove ? above : this.neko.y + this.spriteSize + 8
       }px`;
       this.bubble.classList.toggle("is-below", !fitsAbove);
     }
@@ -689,6 +694,16 @@
       this._hideBubble();
     }
 
+    _edgeStateForDirection(direction) {
+      const state = window.NekoState;
+      if (!state) return null;
+      if (direction === "up") return state.U_CLAW;
+      if (direction === "down") return state.D_CLAW;
+      if (direction === "left") return state.L_CLAW;
+      if (direction === "right") return state.R_CLAW;
+      return null;
+    }
+
     _loop() {
       if (!this.active || this.destroyed) {
         this.frameId = null;
@@ -698,9 +713,9 @@
       const waypoint = this._enforceWaypoint();
       if (waypoint) {
         const dx =
-          this.neko.x + GUIDE_SPRITE_SIZE / 2 - waypoint.x;
+          this.neko.x + this.spriteSize / 2 - waypoint.x;
         const dy =
-          this.neko.y + GUIDE_SPRITE_SIZE / 2 - waypoint.y;
+          this.neko.y + this.spriteSize / 2 - waypoint.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
 
         if (waypoint.scrollDirection) {
@@ -728,9 +743,18 @@
                 : this.scrollMessage;
             this._showBubble(message, 0);
           }
+          if (distance < this.arrivalDistance) {
+            const edgeState = this._edgeStateForDirection(
+              waypoint.scrollDirection
+            );
+            if (edgeState !== null && this.neko.state !== edgeState) {
+              this.neko.setState(edgeState);
+            }
+          }
         } else {
           if (this.waitingDirection) {
             this.waitingDirection = null;
+            this.neko.setState(window.NekoState.AWAKE);
             this._hideBubble();
           }
 
@@ -770,11 +794,11 @@
         window.innerWidth <= 640 ? Math.min(this.dockGap, 12) : this.dockGap;
       const x = Math.max(
         0,
-        document.documentElement.clientWidth - GUIDE_SPRITE_SIZE - gap
+        document.documentElement.clientWidth - this.spriteSize - gap
       );
       const y = Math.max(
         0,
-        window.innerHeight - GUIDE_SPRITE_SIZE - gap
+        window.innerHeight - this.spriteSize - gap
       );
       this.neko.setPosition(x, y);
     }
@@ -875,7 +899,7 @@
         !this.active
       );
       this.neko.element.setAttribute("aria-pressed", String(this.active));
-      const label = this.active ? "Let Neko rest" : "Wake Neko";
+      const label = this.active ? this.restLabel : this.wakeLabel;
       this.neko.element.setAttribute("aria-label", label);
       this.neko.element.title = label;
     }

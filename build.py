@@ -166,9 +166,9 @@ def build():
 {code_js}
 
     // Auto-initialize function
-    window.createNeko = function(options) {{
+    window.createNeko = function(options = {{}}) {{
         const neko = new Neko(options);
-        neko.setSprites(NEKO_SPRITES);
+        neko.setSprites(options.sprites || NEKO_SPRITES);
         neko.start();
         return neko;
     }};

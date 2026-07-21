@@ -100,6 +100,26 @@ const guide = createNekoGuide({
 </script>
 ```
 
+Custom character packs can reuse the same movement engine by supplying the
+classic 32-frame animation order and a display size:
+
+```javascript
+const guide = createNekoGuide({
+  wakeLabel: "Wake the companion",
+  restLabel: "Let the companion rest",
+  recallLabel: "Replay the companion's previous message",
+  nekoOptions: {
+    sprites: companionSprites,
+    spriteSize: 48
+  }
+});
+```
+
+The default cat remains 32 pixels. When an off-screen destination makes the
+guide wait at a viewport edge, the matching claw frames are used as climbing
+frames, so themed sprite packs can visibly climb while asking the user to
+scroll.
+
 The annotations are hidden automatically. Each one supports:
 
 | Attribute | Purpose |
