@@ -49,6 +49,8 @@
         ((direction) => `Scroll ${direction} — there is more.`);
       this.wakeLabel = options.wakeLabel || "Wake Neko";
       this.restLabel = options.restLabel || "Let Neko rest";
+      this.returningLabel =
+        options.returningLabel || "Neko is returning to rest";
       this.recallLabel =
         options.recallLabel || "Replay Neko's previous message";
       this.destroyNeko = options.destroyNeko !== false;
@@ -56,6 +58,7 @@
       this.stops = [];
       this.stopIndex = 0;
       this.active = false;
+      this.docking = false;
       this.arrived = false;
       this.waitingDirection = null;
       this.recallStop = null;
@@ -96,7 +99,7 @@
       if (options.startDocked === false) {
         this.wake();
       } else {
-        this.dock();
+        this.dock({ immediate: true });
       }
     }
 
@@ -420,7 +423,7 @@
       this.lastActiveGroup = activeGroup;
 
       if (routeChanged) this._clearArrival();
-      if (this.active) this._enforceWaypoint();
+      if (this.active && !this.docking) this._enforceWaypoint();
     }
 
     _scheduleRefresh(restart = false) {
@@ -705,8 +708,26 @@
     }
 
     _loop() {
-      if (!this.active || this.destroyed) {
+      if ((!this.active && !this.docking) || this.destroyed) {
         this.frameId = null;
+        return;
+      }
+
+      if (this.docking) {
+        const dock = this._dockedPosition();
+        this.neko.setTarget(
+          dock.x + this.spriteSize / 2,
+          dock.y + this.spriteSize - 1
+        );
+        const dx = this.neko.x - dock.x;
+        const dy = this.neko.y - dock.y;
+
+        if (Math.sqrt(dx * dx + dy * dy) <= 1) {
+          this._finishDock();
+          return;
+        }
+
+        this.frameId = requestAnimationFrame(this._loop);
         return;
       }
 
@@ -787,20 +808,23 @@
       }
     }
 
-    _positionDockedNeko() {
-      if (this.active) return;
-
+    _dockedPosition() {
       const gap =
         window.innerWidth <= 640 ? Math.min(this.dockGap, 12) : this.dockGap;
-      const x = Math.max(
-        0,
-        document.documentElement.clientWidth - this.spriteSize - gap
-      );
-      const y = Math.max(
-        0,
-        window.innerHeight - this.spriteSize - gap
-      );
-      this.neko.setPosition(x, y);
+      return {
+        x: Math.max(
+          0,
+          document.documentElement.clientWidth - this.spriteSize - gap
+        ),
+        y: Math.max(0, window.innerHeight - this.spriteSize - gap),
+      };
+    }
+
+    _positionDockedNeko() {
+      if (this.active || this.docking) return;
+
+      const position = this._dockedPosition();
+      this.neko.setPosition(position.x, position.y);
     }
 
     _renderDockFrame() {
@@ -898,8 +922,20 @@
         "neko-guide__cat--docked",
         !this.active
       );
-      this.neko.element.setAttribute("aria-pressed", String(this.active));
-      const label = this.active ? this.restLabel : this.wakeLabel;
+      this.neko.element.classList.toggle(
+        "neko-guide__cat--returning",
+        this.docking
+      );
+      this.neko.element.setAttribute(
+        "aria-pressed",
+        String(this.active && !this.docking)
+      );
+      this.neko.element.setAttribute("aria-disabled", String(this.docking));
+      const label = this.docking
+        ? this.returningLabel
+        : this.active
+          ? this.restLabel
+          : this.wakeLabel;
       this.neko.element.setAttribute("aria-label", label);
       this.neko.element.title = label;
     }
@@ -926,11 +962,10 @@
       return this.wake();
     }
 
-    dock() {
-      if (this.destroyed) return;
-
-      this.neko.stop();
+    _finishDock() {
+      this.docking = false;
       this.active = false;
+      this.neko.stop();
       this._stopLoop();
       this._clearArrival();
       this._positionDockedNeko();
@@ -939,7 +974,33 @@
       this._updateControl();
     }
 
+    dock({ immediate = false } = {}) {
+      if (this.destroyed) return;
+
+      if (this.docking && !immediate) return;
+
+      if (!this.active || immediate) {
+        this._finishDock();
+        return;
+      }
+
+      this.docking = true;
+      this._stopDockAnimation();
+      this._stopIdleMessages();
+      this._clearArrival();
+      const dock = this._dockedPosition();
+      this.neko.setTarget(
+        dock.x + this.spriteSize / 2,
+        dock.y + this.spriteSize - 1
+      );
+      this.neko.calcDirection(dock.x - this.neko.x, dock.y - this.neko.y);
+      this.neko.start();
+      this._updateControl();
+      this._startLoop();
+    }
+
     toggle() {
+      if (this.docking) return;
       if (this.active) {
         this.dock();
       } else {
@@ -1016,7 +1077,7 @@
     }
 
     _onRecall() {
-      if (!this.active || !this.recallStop) return;
+      if (!this.active || this.docking || !this.recallStop) return;
 
       const recalledIndex = this.stops.findIndex(
         (stop) => stop.annotation === this.recallStop.annotation
@@ -1050,7 +1111,7 @@
     }
 
     _onMouseMove() {
-      if (this.active) this._enforceWaypoint();
+      if (this.active && !this.docking) this._enforceWaypoint();
     }
 
     _onRefreshRequest() {
@@ -1060,7 +1121,7 @@
     destroy() {
       if (this.destroyed) return;
 
-      this.dock();
+      this.dock({ immediate: true });
       this.destroyed = true;
       this._stopDockAnimation();
       this._stopIdleMessages();

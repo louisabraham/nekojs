@@ -107,6 +107,7 @@ classic 32-frame animation order and a display size:
 const guide = createNekoGuide({
   wakeLabel: "Wake the companion",
   restLabel: "Let the companion rest",
+  returningLabel: "The companion is returning to rest",
   recallLabel: "Replay the companion's previous message",
   nekoOptions: {
     sprites: companionSprites,
@@ -118,7 +119,8 @@ const guide = createNekoGuide({
 The default cat remains 32 pixels. When an off-screen destination makes the
 guide wait at a viewport edge, the matching claw frames are used as climbing
 frames, so themed sprite packs can visibly climb while asking the user to
-scroll.
+scroll. When the active companion is clicked again, it walks back to its dock
+before entering the idle animation cycle.
 
 The annotations are hidden automatically. Each one supports:
 
