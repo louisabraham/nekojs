@@ -127,7 +127,7 @@ window.dispatchEvent(new Event("neko-guide:refresh"));
 Elements inside a `hidden` or `aria-hidden="true"` container are skipped
 automatically. When a target is off screen, Neko waits at the corresponding
 viewport edge with a short scroll hint. Hovering a message pauses both its timer
-and Neko's route. After each message, a black-and-white paw remains for ten
+and Neko's route. After each message, a subtle neutral paw remains for ten
 seconds. Hovering the paw previews the message; selecting it calls Neko back to
 that tour stop.
 

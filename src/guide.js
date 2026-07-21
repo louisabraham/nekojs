@@ -270,29 +270,32 @@
           width: 28px;
           height: 28px;
           place-items: center;
-          border: 2px solid #0f172a;
+          border: 1px solid rgba(100, 116, 139, 0.48);
           border-radius: 999px;
-          background: #fff;
+          background: rgba(248, 250, 252, 0.94);
           padding: 0;
-          box-shadow: 2px 2px 0 rgba(15, 23, 42, 0.2);
-          color: #0f172a;
+          box-shadow: 0 2px 7px rgba(15, 23, 42, 0.14);
+          color: #475569;
           font-size: 14px;
           line-height: 1;
           cursor: pointer;
-          opacity: 0.82;
+          opacity: 0.88;
           transition: opacity 150ms ease, transform 150ms ease,
-            background 150ms ease;
+            background 150ms ease, border-color 150ms ease,
+            box-shadow 150ms ease;
         }
 
         .neko-guide__recall:hover {
-          background: #0f172a;
-          color: #fff;
+          border-color: #94a3b8;
+          background: #e2e8f0;
+          box-shadow: 0 3px 9px rgba(15, 23, 42, 0.18);
+          color: #0f172a;
           opacity: 1;
-          transform: scale(1.12);
+          transform: scale(1.08);
         }
 
         .neko-guide__recall:focus-visible {
-          outline: 3px solid rgba(15, 23, 42, 0.28);
+          outline: 3px solid rgba(100, 116, 139, 0.24);
           outline-offset: 2px;
           opacity: 1;
         }
@@ -301,12 +304,12 @@
           position: fixed;
           z-index: 1000002;
           max-width: min(220px, calc(100vw - 16px));
-          border: 2px solid #0f172a;
+          border: 1px solid #cbd5e1;
           border-radius: 8px;
-          background: #fff;
+          background: rgba(248, 250, 252, 0.98);
           padding: 6px 9px;
-          box-shadow: 3px 3px 0 rgba(15, 23, 42, 0.2);
-          color: #0f172a;
+          box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+          color: #334155;
           font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
             monospace;
           font-size: 11px;

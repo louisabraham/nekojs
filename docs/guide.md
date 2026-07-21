@@ -53,7 +53,7 @@ title: Neko.js guided companion demo
   <strong>Try the interactions</strong>
   <p>
     Hover a message to keep Neko at that colour. After it leaves, hover the
-    black-and-white paw to preview the previous message, or click it to call
+    neutral paw to preview the previous message, or click it to call
     Neko back.
   </p>
 </div>
