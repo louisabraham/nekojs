@@ -64,9 +64,10 @@ neko.setTarget(320, 180); // Run toward a viewport position
 ### Guided companion mode
 
 `createNekoGuide()` turns the same cat into an opt-in guide for a page. Neko
-rests in the bottom corner until clicked, then visits visible annotations in
-order. Targets are resolved again after scrolling or UI changes, so messages
-stay attached to the current position of the related element.
+rests in the bottom corner with occasional random banter until clicked, then
+visits visible annotations in order. Targets are resolved again after scrolling
+or UI changes, so messages stay attached to the current position of the related
+element.
 
 Add semantic annotations anywhere in the page:
 
@@ -89,7 +90,8 @@ Load the optional guide after `neko.js`, then create it:
 <script>
 const guide = createNekoGuide({
   messageDuration: 6000,
-  recallDuration: 60000,
+  recallDuration: 10000,
+  idleMessageDelay: [9000, 18000],
   nekoOptions: {
     speed: 18,
     fps: 60
@@ -124,11 +126,13 @@ window.dispatchEvent(new Event("neko-guide:refresh"));
 
 Elements inside a `hidden` or `aria-hidden="true"` container are skipped
 automatically. When a target is off screen, Neko waits at the corresponding
-viewport edge with a short scroll hint. After each message, a paw marker remains
-for one minute; selecting it replays the previous tour stop.
+viewport edge with a short scroll hint. Hovering a message pauses both its timer
+and Neko's route. After each message, a black-and-white paw remains for ten
+seconds. Hovering the paw previews the message; selecting it calls Neko back to
+that tour stop.
 
-The returned guide exposes `release()`, `dock()`, `toggle()`, `refresh()`, and
-`destroy()`.
+The returned guide exposes `wake()`, `dock()`, `toggle()`, `refresh()`, and
+`destroy()`. `release()` remains as an alias for `wake()`.
 
 To _build_ (actually just package the sprites), run `python3 build.py` (requires Pillow).
 

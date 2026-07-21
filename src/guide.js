@@ -11,6 +11,15 @@
 
   const GUIDE_SPRITE_SIZE = 32;
   const GUIDE_STYLE_ID = "neko-guide-styles";
+  const DEFAULT_IDLE_MESSAGES = [
+    "I am not asleep. I am conserving dramatic energy.",
+    "Click me. Apparently the page will not tour itself.",
+    "I know where everything is. Modesty is not included.",
+    "This corner is mine now. I checked.",
+    "Your cursor looks confident for someone without directions.",
+    "I could help, but this nap has excellent momentum.",
+    "Wake me when you are ready to pretend this was your idea.",
+  ];
 
   class NekoGuide {
     constructor(neko, options = {}) {
@@ -23,7 +32,13 @@
       this.selector = options.selector || "[data-neko-guide]";
       this.getActiveGroup = options.getActiveGroup || null;
       this.messageDuration = options.messageDuration ?? 6000;
-      this.recallDuration = options.recallDuration ?? 60000;
+      this.recallDuration = options.recallDuration ?? 10000;
+      this.idleMessageDuration = options.idleMessageDuration ?? 4000;
+      this.idleMessageDelay = options.idleMessageDelay || [9000, 18000];
+      this.idleMessages =
+        options.idleMessages === false
+          ? []
+          : options.idleMessages || DEFAULT_IDLE_MESSAGES;
       this.arrivalDistance = options.arrivalDistance || 24;
       this.edgePadding = options.edgePadding || 24;
       this.targetGap = options.targetGap || 24;
@@ -39,12 +54,18 @@
       this.arrived = false;
       this.waitingDirection = null;
       this.recallStop = null;
+      this.spokenStop = null;
+      this.messagePaused = false;
+      this.bubbleHeld = false;
+      this.recallPreviewVisible = false;
+      this.lastIdleMessageIndex = -1;
       this.lastActiveGroup = undefined;
       this.destroyed = false;
 
       this.arrivalTimer = null;
       this.bubbleTimer = null;
       this.recallTimer = null;
+      this.idleMessageTimer = null;
       this.dockTimer = null;
       this.dockTick = 0;
       this.frameId = null;
@@ -54,6 +75,10 @@
       this._onCatPointerDown = this._onCatPointerDown.bind(this);
       this._onCatKeyDown = this._onCatKeyDown.bind(this);
       this._onRecall = this._onRecall.bind(this);
+      this._onRecallPreviewEnter = this._onRecallPreviewEnter.bind(this);
+      this._onRecallPreviewLeave = this._onRecallPreviewLeave.bind(this);
+      this._onBubbleEnter = this._onBubbleEnter.bind(this);
+      this._onBubbleLeave = this._onBubbleLeave.bind(this);
       this._onResize = this._onResize.bind(this);
       this._onScroll = this._onScroll.bind(this);
       this._onMouseMove = this._onMouseMove.bind(this);
@@ -64,7 +89,7 @@
       this.refresh();
 
       if (options.startDocked === false) {
-        this.release();
+        this.wake();
       } else {
         this.dock();
       }
@@ -77,6 +102,7 @@
       this.bubble.className = "neko-guide__bubble";
       this.bubble.setAttribute("role", "status");
       this.bubble.setAttribute("aria-live", "polite");
+      this.bubble.tabIndex = 0;
       this.bubble.hidden = true;
       document.body.appendChild(this.bubble);
 
@@ -89,8 +115,20 @@
       );
       this.recallMarker.title = "Replay previous message";
       this.recallMarker.innerHTML = '<span aria-hidden="true">🐾</span>';
+      this.recallMarker.setAttribute("aria-expanded", "false");
       this.recallMarker.hidden = true;
       document.body.appendChild(this.recallMarker);
+
+      this.recallPreview = document.createElement("div");
+      this.recallPreview.className = "neko-guide__recall-preview";
+      this.recallPreview.id = "neko-guide-recall-preview";
+      this.recallPreview.setAttribute("role", "tooltip");
+      this.recallPreview.hidden = true;
+      this.recallMarker.setAttribute(
+        "aria-describedby",
+        this.recallPreview.id
+      );
+      document.body.appendChild(this.recallPreview);
 
       this.neko.element.classList.add("neko-guide__cat");
       this.neko.element.style.pointerEvents = "auto";
@@ -105,7 +143,21 @@
         this._onCatPointerDown
       );
       this.neko.element.addEventListener("keydown", this._onCatKeyDown);
+      this.bubble.addEventListener("mouseenter", this._onBubbleEnter);
+      this.bubble.addEventListener("mouseleave", this._onBubbleLeave);
+      this.bubble.addEventListener("focus", this._onBubbleEnter);
+      this.bubble.addEventListener("blur", this._onBubbleLeave);
       this.recallMarker.addEventListener("click", this._onRecall);
+      this.recallMarker.addEventListener(
+        "mouseenter",
+        this._onRecallPreviewEnter
+      );
+      this.recallMarker.addEventListener(
+        "mouseleave",
+        this._onRecallPreviewLeave
+      );
+      this.recallMarker.addEventListener("focus", this._onRecallPreviewEnter);
+      this.recallMarker.addEventListener("blur", this._onRecallPreviewLeave);
       window.addEventListener("resize", this._onResize);
       document.addEventListener("scroll", this._onScroll, {
         capture: true,
@@ -170,12 +222,24 @@
           font-weight: 700;
           line-height: 1.35;
           text-align: center;
-          pointer-events: none;
+          pointer-events: auto;
+          cursor: help;
         }
 
         .neko-guide__bubble[hidden],
-        .neko-guide__recall[hidden] {
+        .neko-guide__recall[hidden],
+        .neko-guide__recall-preview[hidden] {
           display: none;
+        }
+
+        .neko-guide__bubble:hover,
+        .neko-guide__bubble.is-held {
+          box-shadow: 3px 3px 0 #0f172a;
+        }
+
+        .neko-guide__bubble:focus-visible {
+          outline: 3px solid rgba(15, 23, 42, 0.28);
+          outline-offset: 3px;
         }
 
         .neko-guide__bubble::after {
@@ -206,30 +270,50 @@
           width: 28px;
           height: 28px;
           place-items: center;
-          border: 0;
+          border: 2px solid #0f172a;
           border-radius: 999px;
-          background: rgba(255, 251, 235, 0.88);
+          background: #fff;
           padding: 0;
-          box-shadow: 0 1px 4px rgba(15, 23, 42, 0.16);
-          color: #b45309;
+          box-shadow: 2px 2px 0 rgba(15, 23, 42, 0.2);
+          color: #0f172a;
           font-size: 14px;
           line-height: 1;
           cursor: pointer;
-          opacity: 0.72;
+          opacity: 0.82;
           transition: opacity 150ms ease, transform 150ms ease,
             background 150ms ease;
         }
 
         .neko-guide__recall:hover {
-          background: #fffbeb;
+          background: #0f172a;
+          color: #fff;
           opacity: 1;
           transform: scale(1.12);
         }
 
         .neko-guide__recall:focus-visible {
-          outline: 3px solid rgba(245, 158, 11, 0.28);
+          outline: 3px solid rgba(15, 23, 42, 0.28);
           outline-offset: 2px;
           opacity: 1;
+        }
+
+        .neko-guide__recall-preview {
+          position: fixed;
+          z-index: 1000002;
+          max-width: min(220px, calc(100vw - 16px));
+          border: 2px solid #0f172a;
+          border-radius: 8px;
+          background: #fff;
+          padding: 6px 9px;
+          box-shadow: 3px 3px 0 rgba(15, 23, 42, 0.2);
+          color: #0f172a;
+          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+            monospace;
+          font-size: 11px;
+          font-weight: 700;
+          line-height: 1.35;
+          text-align: center;
+          pointer-events: none;
         }
       `;
       document.head.appendChild(style);
@@ -418,7 +502,8 @@
       return { ...position, scrollDirection, stop };
     }
 
-    _showBubble(message, duration = this.messageDuration) {
+    _showBubble(message, duration = this.messageDuration, announce = true) {
+      this.bubble.setAttribute("aria-live", announce ? "polite" : "off");
       this.bubble.textContent = message;
       this.bubble.hidden = false;
       if (this.bubbleTimer) clearTimeout(this.bubbleTimer);
@@ -436,7 +521,7 @@
     }
 
     _trackBubble() {
-      if (!this.active || this.bubble.hidden) return;
+      if (this.destroyed || this.bubble.hidden) return;
 
       const width = this.bubble.offsetWidth;
       const height = this.bubble.offsetHeight;
@@ -458,6 +543,7 @@
     _clearRecallMarker() {
       this.recallStop = null;
       this.recallMarker.hidden = true;
+      this._hideRecallPreview();
       if (this.recallTimer) {
         clearTimeout(this.recallTimer);
         this.recallTimer = null;
@@ -472,12 +558,14 @@
         !this._targetIsAvailable(stop.target)
       ) {
         this.recallMarker.hidden = true;
+        this._hideRecallPreview();
         return;
       }
 
       const rect = stop.target.getBoundingClientRect();
       if (this._scrollDirectionForTarget(rect)) {
         this.recallMarker.hidden = true;
+        this._hideRecallPreview();
         return;
       }
 
@@ -498,6 +586,54 @@
           window.innerHeight - markerSize - 6
         )
       )}px`;
+      this._syncRecallPreviewHover();
+      if (this.recallPreviewVisible) this._positionRecallPreview();
+    }
+
+    _syncRecallPreviewHover() {
+      const interested =
+        this.recallMarker.matches(":hover") ||
+        document.activeElement === this.recallMarker;
+      if (interested && !this.recallPreviewVisible) {
+        this._showRecallPreview();
+      } else if (!interested && this.recallPreviewVisible) {
+        this._hideRecallPreview();
+      }
+    }
+
+    _positionRecallPreview() {
+      if (!this.recallPreviewVisible || this.recallMarker.hidden) return;
+
+      const markerRect = this.recallMarker.getBoundingClientRect();
+      const width = this.recallPreview.offsetWidth;
+      const height = this.recallPreview.offsetHeight;
+      const left = Math.max(
+        8,
+        Math.min(
+          markerRect.left + markerRect.width / 2 - width / 2,
+          window.innerWidth - width - 8
+        )
+      );
+      const above = markerRect.top - height - 10;
+      this.recallPreview.style.left = `${left}px`;
+      this.recallPreview.style.top = `${
+        above > 8 ? above : markerRect.bottom + 10
+      }px`;
+    }
+
+    _showRecallPreview() {
+      if (!this.recallStop || this.recallMarker.hidden) return;
+      this.recallPreview.textContent = this.recallStop.message;
+      this.recallPreview.hidden = false;
+      this.recallPreviewVisible = true;
+      this.recallMarker.setAttribute("aria-expanded", "true");
+      this._positionRecallPreview();
+    }
+
+    _hideRecallPreview() {
+      this.recallPreview.hidden = true;
+      this.recallPreviewVisible = false;
+      this.recallMarker.setAttribute("aria-expanded", "false");
     }
 
     _leaveRecallMarker(stop) {
@@ -512,12 +648,39 @@
       this._trackRecallMarker();
     }
 
+    _scheduleStopAdvance(stop, delay = this.messageDuration + 400) {
+      if (this.arrivalTimer) clearTimeout(this.arrivalTimer);
+      this.arrivalTimer = setTimeout(() => {
+        this.arrivalTimer = null;
+        this._advanceFromStop(stop);
+      }, delay);
+    }
+
+    _advanceFromStop(stop) {
+      if (this.messagePaused || this.spokenStop !== stop) return;
+
+      this._leaveRecallMarker(stop);
+      const spokenIndex = this.stops.findIndex(
+        (item) => item.annotation === stop.annotation
+      );
+      this.stopIndex =
+        spokenIndex >= 0 ? (spokenIndex + 1) % this.stops.length : 0;
+      this.arrived = false;
+      this.spokenStop = null;
+      this._hideBubble();
+      this._enforceWaypoint();
+    }
+
     _clearArrival() {
       if (this.arrivalTimer) {
         clearTimeout(this.arrivalTimer);
         this.arrivalTimer = null;
       }
       this.arrived = false;
+      this.spokenStop = null;
+      this.messagePaused = false;
+      this.bubbleHeld = false;
+      this.bubble.classList.remove("is-held");
       this.waitingDirection = null;
       this._clearRecallMarker();
       this._hideBubble();
@@ -542,6 +705,13 @@
             clearTimeout(this.arrivalTimer);
             this.arrivalTimer = null;
           }
+          if (this.arrived) {
+            this.spokenStop = null;
+            this.messagePaused = false;
+            this.bubbleHeld = false;
+            this.bubble.classList.remove("is-held");
+            this._hideBubble();
+          }
           this.arrived = false;
 
           if (
@@ -563,26 +733,15 @@
 
           if (distance < this.arrivalDistance && !this.arrived) {
             this.arrived = true;
+            this.spokenStop = waypoint.stop;
+            this.messagePaused = false;
             this._showBubble(waypoint.stop.message);
-            const spokenStop = waypoint.stop;
-
-            this.arrivalTimer = setTimeout(() => {
-              this._leaveRecallMarker(spokenStop);
-              const spokenIndex = this.stops.findIndex(
-                (stop) => stop.annotation === spokenStop.annotation
-              );
-              this.stopIndex =
-                spokenIndex >= 0
-                  ? (spokenIndex + 1) % this.stops.length
-                  : 0;
-              this.arrived = false;
-              this._hideBubble();
-              this._enforceWaypoint();
-            }, this.messageDuration + 400);
+            this._scheduleStopAdvance(waypoint.stop);
           }
         }
       }
 
+      this._syncBubbleHover();
       this._trackBubble();
       this._trackRecallMarker();
       this.frameId = requestAnimationFrame(this._loop);
@@ -642,6 +801,8 @@
       }
       this.neko.updateSprite();
       this.dockTick++;
+      this._syncBubbleHover();
+      this._trackBubble();
     }
 
     _startDockAnimation() {
@@ -657,24 +818,73 @@
       this.dockTimer = null;
     }
 
+    _randomIdleDelay() {
+      const range = Array.isArray(this.idleMessageDelay)
+        ? this.idleMessageDelay
+        : [this.idleMessageDelay, this.idleMessageDelay];
+      const minimum = Math.max(0, Number(range[0]) || 0);
+      const maximum = Math.max(minimum, Number(range[1]) || minimum);
+      return minimum + Math.random() * (maximum - minimum);
+    }
+
+    _nextIdleMessage() {
+      if (!this.idleMessages.length) return "";
+
+      let index = Math.floor(Math.random() * this.idleMessages.length);
+      if (
+        this.idleMessages.length > 1 &&
+        index === this.lastIdleMessageIndex
+      ) {
+        index = (index + 1) % this.idleMessages.length;
+      }
+      this.lastIdleMessageIndex = index;
+      return this.idleMessages[index];
+    }
+
+    _scheduleIdleMessage() {
+      this._stopIdleMessages();
+      if (this.active || this.destroyed || !this.idleMessages.length) return;
+
+      this.idleMessageTimer = setTimeout(() => {
+        this.idleMessageTimer = null;
+        if (this.active || this.destroyed) return;
+        if (!this.bubbleHeld) {
+          this._showBubble(
+            this._nextIdleMessage(),
+            this.idleMessageDuration,
+            false
+          );
+          this._trackBubble();
+        }
+        this._scheduleIdleMessage();
+      }, this._randomIdleDelay());
+    }
+
+    _stopIdleMessages() {
+      if (!this.idleMessageTimer) return;
+      clearTimeout(this.idleMessageTimer);
+      this.idleMessageTimer = null;
+    }
+
     _updateControl() {
       this.neko.element.classList.toggle(
         "neko-guide__cat--docked",
         !this.active
       );
       this.neko.element.setAttribute("aria-pressed", String(this.active));
-      const label = this.active ? "Let Neko rest" : "Release Neko";
+      const label = this.active ? "Let Neko rest" : "Wake Neko";
       this.neko.element.setAttribute("aria-label", label);
       this.neko.element.title = label;
     }
 
-    release() {
+    wake() {
       if (this.active || this.destroyed) return false;
 
       this.refresh({ restart: true });
       if (!this.stops.length) return false;
 
       this._stopDockAnimation();
+      this._stopIdleMessages();
       this._clearArrival();
       this.active = true;
       this.neko.setState(window.NekoState.AWAKE);
@@ -683,6 +893,10 @@
       this._updateControl();
       this._startLoop();
       return true;
+    }
+
+    release() {
+      return this.wake();
     }
 
     dock() {
@@ -694,6 +908,7 @@
       this._clearArrival();
       this._positionDockedNeko();
       this._startDockAnimation();
+      this._scheduleIdleMessage();
       this._updateControl();
     }
 
@@ -701,7 +916,7 @@
       if (this.active) {
         this.dock();
       } else {
-        this.release();
+        this.wake();
       }
     }
 
@@ -715,6 +930,62 @@
       if (event.key !== "Enter" && event.key !== " ") return;
       event.preventDefault();
       this.toggle();
+    }
+
+    _onBubbleEnter() {
+      if (this.bubble.hidden) return;
+      this.bubbleHeld = true;
+      this.bubble.classList.add("is-held");
+      if (this.bubbleTimer) {
+        clearTimeout(this.bubbleTimer);
+        this.bubbleTimer = null;
+      }
+
+      if (this.active && this.arrived && this.spokenStop) {
+        this.messagePaused = true;
+        if (this.arrivalTimer) {
+          clearTimeout(this.arrivalTimer);
+          this.arrivalTimer = null;
+        }
+      }
+    }
+
+    _syncBubbleHover() {
+      const interested =
+        !this.bubble.hidden &&
+        (this.bubble.matches(":hover") ||
+          document.activeElement === this.bubble);
+      if (interested && !this.bubbleHeld) {
+        this._onBubbleEnter();
+      } else if (!interested && this.bubbleHeld) {
+        this._onBubbleLeave();
+      }
+    }
+
+    _onBubbleLeave() {
+      if (!this.bubbleHeld) return;
+      this.bubbleHeld = false;
+      this.bubble.classList.remove("is-held");
+
+      if (this.active && this.messagePaused && this.spokenStop) {
+        this.messagePaused = false;
+        this._showBubble(this.spokenStop.message);
+        this._scheduleStopAdvance(this.spokenStop);
+      } else if (!this.active && !this.bubble.hidden) {
+        this._showBubble(
+          this.bubble.textContent,
+          this.idleMessageDuration,
+          false
+        );
+      }
+    }
+
+    _onRecallPreviewEnter() {
+      this._showRecallPreview();
+    }
+
+    _onRecallPreviewLeave() {
+      this._hideRecallPreview();
     }
 
     _onRecall() {
@@ -734,6 +1005,8 @@
       }
       this.stopIndex = recalledIndex;
       this.arrived = false;
+      this.spokenStop = null;
+      this.messagePaused = false;
       this.waitingDirection = null;
       this._hideBubble();
       this._clearRecallMarker();
@@ -763,6 +1036,7 @@
       this.dock();
       this.destroyed = true;
       this._stopDockAnimation();
+      this._stopIdleMessages();
       if (this.refreshFrame) cancelAnimationFrame(this.refreshFrame);
       this.observer.disconnect();
 
@@ -771,7 +1045,27 @@
         this._onCatPointerDown
       );
       this.neko.element.removeEventListener("keydown", this._onCatKeyDown);
+      this.bubble.removeEventListener("mouseenter", this._onBubbleEnter);
+      this.bubble.removeEventListener("mouseleave", this._onBubbleLeave);
+      this.bubble.removeEventListener("focus", this._onBubbleEnter);
+      this.bubble.removeEventListener("blur", this._onBubbleLeave);
       this.recallMarker.removeEventListener("click", this._onRecall);
+      this.recallMarker.removeEventListener(
+        "mouseenter",
+        this._onRecallPreviewEnter
+      );
+      this.recallMarker.removeEventListener(
+        "mouseleave",
+        this._onRecallPreviewLeave
+      );
+      this.recallMarker.removeEventListener(
+        "focus",
+        this._onRecallPreviewEnter
+      );
+      this.recallMarker.removeEventListener(
+        "blur",
+        this._onRecallPreviewLeave
+      );
       window.removeEventListener("resize", this._onResize);
       document.removeEventListener("scroll", this._onScroll, {
         capture: true,
@@ -784,6 +1078,7 @@
 
       this.bubble.remove();
       this.recallMarker.remove();
+      this.recallPreview.remove();
       if (this.destroyNeko) this.neko.destroy();
     }
   }

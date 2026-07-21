@@ -10,89 +10,71 @@ title: Neko.js guided companion demo
   <p class="guide-demo-kicker">optional guided companion</p>
   <h1>Let Neko explain the page</h1>
   <p>
-    Neko is resting in the bottom-right corner. Click the cat to release it,
-    then scroll or change tabs while it follows the page's live layout.
+    Neko is resting in the bottom-right corner and occasionally has opinions.
+    Click the cat to wake it, then watch it tour all seven colours.
   </p>
 </div>
 
-<div class="guide-demo-tabs" role="tablist" aria-label="Demo sections">
-  <button type="button" class="is-active" data-guide-demo-tab="welcome" role="tab" aria-selected="true">Welcome</button>
-  <button type="button" data-guide-demo-tab="explore" role="tab" aria-selected="false">Explore</button>
-</div>
-
-<section id="guide-welcome" data-guide-demo-panel="welcome" role="tabpanel">
-  <h2>Welcome</h2>
-  <div class="guide-demo-grid">
-    <article id="guide-introduction">
-      <strong>Introduction</strong>
-      <p>A short welcome helps visitors understand what this page offers.</p>
+<section class="guide-colour-tour" aria-labelledby="colour-tour-title">
+  <h2 id="colour-tour-title">Seven-colour tour</h2>
+  <div class="guide-colour-grid">
+    <article id="colour-red" class="guide-colour-card" style="--guide-colour: #ef4444">
+      <span aria-hidden="true"></span>
+      <strong>Red</strong>
     </article>
-    <article id="guide-next-step">
-      <strong>Next step</strong>
-      <p>A clear action gives visitors an easy way to continue.</p>
+    <article id="colour-orange" class="guide-colour-card" style="--guide-colour: #f97316">
+      <span aria-hidden="true"></span>
+      <strong>Orange</strong>
+    </article>
+    <article id="colour-yellow" class="guide-colour-card" style="--guide-colour: #facc15">
+      <span aria-hidden="true"></span>
+      <strong>Yellow</strong>
+    </article>
+    <article id="colour-green" class="guide-colour-card" style="--guide-colour: #22c55e">
+      <span aria-hidden="true"></span>
+      <strong>Green</strong>
+    </article>
+    <article id="colour-blue" class="guide-colour-card" style="--guide-colour: #3b82f6">
+      <span aria-hidden="true"></span>
+      <strong>Blue</strong>
+    </article>
+    <article id="colour-indigo" class="guide-colour-card" style="--guide-colour: #4f46e5">
+      <span aria-hidden="true"></span>
+      <strong>Indigo</strong>
+    </article>
+    <article id="colour-violet" class="guide-colour-card" style="--guide-colour: #8b5cf6">
+      <span aria-hidden="true"></span>
+      <strong>Violet</strong>
     </article>
   </div>
 </section>
 
-<section id="guide-explore" data-guide-demo-panel="explore" role="tabpanel" hidden>
-  <h2>Explore</h2>
-  <div class="guide-demo-grid">
-    <article id="guide-feature">
-      <strong>Featured area</strong>
-      <p>Neko can introduce an important part of any page.</p>
-    </article>
-    <article id="guide-resources">
-      <strong>Helpful resources</strong>
-      <p>Useful links and supporting content remain easy to discover.</p>
-    </article>
-  </div>
-</section>
-
-<div class="guide-demo-spacer" aria-hidden="true"></div>
-
-<section id="guide-finish" class="guide-demo-finish">
-  <h2>Scroll-aware destinations</h2>
+<div class="guide-demo-note">
+  <strong>Try the interactions</strong>
   <p>
-    Neko uses the target's current viewport position. If the destination is
-    outside the viewport, the cat waits at the edge until you scroll.
+    Hover a message to keep Neko at that colour. After it leaves, hover the
+    black-and-white paw to preview the previous message, or click it to call
+    Neko back.
   </p>
-</section>
+</div>
 
-<i data-neko-guide data-neko-group="welcome" data-neko-target="#guide-introduction" data-neko-side="bottom" data-neko-message="Start here for a quick introduction to the page."></i>
-<i data-neko-guide data-neko-group="welcome" data-neko-target="#guide-next-step" data-neko-side="left" data-neko-message="This is the natural next step when you are ready to continue."></i>
-<i data-neko-guide data-neko-group="explore" data-neko-target="#guide-feature" data-neko-side="bottom" data-neko-message="I can point out a feature without interrupting the page."></i>
-<i data-neko-guide data-neko-group="explore" data-neko-target="#guide-resources" data-neko-side="left" data-neko-message="Helpful resources are easier to find when I lead you there."></i>
-<i data-neko-guide data-neko-target="#guide-finish" data-neko-side="top" data-neko-message="I found this after the page moved. My message is still attached to the element."></i>
+<i data-neko-guide data-neko-target="#colour-red" data-neko-side="bottom" data-neko-message="Red. Subtle as a fire alarm. I respect the commitment."></i>
+<i data-neko-guide data-neko-target="#colour-orange" data-neko-side="bottom" data-neko-message="Orange. Red took a holiday and came back cheerful."></i>
+<i data-neko-guide data-neko-target="#colour-yellow" data-neko-side="bottom" data-neko-message="Yellow. Sunshine, now with contrast requirements."></i>
+<i data-neko-guide data-neko-target="#colour-green" data-neko-side="bottom" data-neko-message="Green. Nature's favourite success badge."></i>
+<i data-neko-guide data-neko-target="#colour-blue" data-neko-side="bottom" data-neko-message="Blue. Calm, dependable, and on every corporate slide."></i>
+<i data-neko-guide data-neko-target="#colour-indigo" data-neko-side="bottom" data-neko-message="Indigo. Blue, but it read one mysterious book."></i>
+<i data-neko-guide data-neko-target="#colour-violet" data-neko-side="bottom" data-neko-message="Violet. Purple with a slightly fancier résumé."></i>
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-  let activeGroup = "welcome";
-  const tabs = Array.from(document.querySelectorAll("[data-guide-demo-tab]"));
-  const panels = Array.from(document.querySelectorAll("[data-guide-demo-panel]"));
-
   window.guide = createNekoGuide({
-    getActiveGroup: function () {
-      return activeGroup;
-    },
+    recallDuration: 10000,
+    idleMessageDelay: [3000, 6000],
     nekoOptions: {
       fps: 60,
       speed: 18
     }
-  });
-
-  tabs.forEach(function (tab) {
-    tab.addEventListener("click", function () {
-      activeGroup = tab.dataset.guideDemoTab;
-      tabs.forEach(function (item) {
-        const selected = item === tab;
-        item.classList.toggle("is-active", selected);
-        item.setAttribute("aria-selected", String(selected));
-      });
-      panels.forEach(function (panel) {
-        panel.hidden = panel.dataset.guideDemoPanel !== activeGroup;
-      });
-      window.dispatchEvent(new Event("neko-guide:refresh"));
-    });
   });
 });
 </script>
