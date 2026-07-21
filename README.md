@@ -26,7 +26,7 @@ The original source code (in the `nkosrc4/` folder) was downloaded from [web.arc
 - ⚡ **Lightweight** - ~38KB uncompressed with sprites embedded (brotli compressed to ~14KB)
 - 🚀 **Zero dependencies** - Pure vanilla JavaScript
 - 🖱️ **Interactive** - Click to change behavior modes
-- 💬 **Optional page guide** - Visits annotated UI and explains nearby signals
+- 💬 **Optional page guide** - Visits annotated elements and explains the page
 
 ## Usage
 
@@ -71,13 +71,13 @@ stay attached to the current position of the related element.
 Add semantic annotations anywhere in the page:
 
 ```html
-<section id="review-queue">...</section>
+<section id="welcome-card">...</section>
 
 <i
   data-neko-guide
-  data-neko-target="#review-queue"
+  data-neko-target="#welcome-card"
   data-neko-side="bottom"
-  data-neko-message="Three reviews need attention."
+  data-neko-message="This is a good place to begin."
 ></i>
 ```
 
@@ -112,20 +112,20 @@ For tabbed or filtered interfaces, return the active group and request a route
 refresh whenever the interface changes:
 
 ```javascript
-let activeTab = "reviews";
+let activeTab = "home";
 
 const guide = createNekoGuide({
   getActiveGroup: () => activeTab
 });
 
-activeTab = "deployments";
+activeTab = "features";
 window.dispatchEvent(new Event("neko-guide:refresh"));
 ```
 
 Elements inside a `hidden` or `aria-hidden="true"` container are skipped
 automatically. When a target is off screen, Neko waits at the corresponding
 viewport edge with a short scroll hint. After each message, a paw marker remains
-for one minute; selecting it replays the previous signal.
+for one minute; selecting it replays the previous tour stop.
 
 The returned guide exposes `release()`, `dock()`, `toggle()`, `refresh()`, and
 `destroy()`.

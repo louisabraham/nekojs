@@ -33,12 +33,12 @@
         ((direction) => `Scroll ${direction} — there is more.`);
       this.destroyNeko = options.destroyNeko !== false;
 
-      this.signals = [];
-      this.signalIndex = 0;
+      this.stops = [];
+      this.stopIndex = 0;
       this.active = false;
       this.arrived = false;
       this.waitingDirection = null;
-      this.recallSignal = null;
+      this.recallStop = null;
       this.lastActiveGroup = undefined;
       this.destroyed = false;
 
@@ -282,19 +282,19 @@
       return rect.width > 0 && rect.height > 0;
     }
 
-    _currentSignal() {
-      if (!this.signals.length) return null;
-      return this.signals[this.signalIndex % this.signals.length];
+    _currentStop() {
+      if (!this.stops.length) return null;
+      return this.stops[this.stopIndex % this.stops.length];
     }
 
     refresh({ restart = false } = {}) {
       if (this.destroyed) return;
 
-      const previousAnnotation = this._currentSignal()?.annotation;
+      const previousAnnotation = this._currentStop()?.annotation;
       const activeGroup = this._activeGroup();
       const groupChanged = activeGroup !== this.lastActiveGroup;
       const annotations = Array.from(this.root.querySelectorAll(this.selector));
-      const nextSignals = annotations
+      const nextStops = annotations
         .filter((annotation) => {
           const group = annotation.dataset.nekoGroup;
           return !group || !activeGroup || group === activeGroup;
@@ -309,23 +309,22 @@
           side: annotation.dataset.nekoSide || "bottom",
         }))
         .filter(
-          (signal) =>
-            signal.message && this._targetIsAvailable(signal.target)
+          (stop) => stop.message && this._targetIsAvailable(stop.target)
         );
 
       const previousIndex = !restart && !groupChanged && previousAnnotation
-        ? nextSignals.findIndex(
-            (signal) => signal.annotation === previousAnnotation
+        ? nextStops.findIndex(
+            (stop) => stop.annotation === previousAnnotation
           )
         : -1;
       const routeChanged =
         restart ||
         groupChanged ||
         (previousAnnotation && previousIndex === -1) ||
-        (!previousAnnotation && nextSignals.length > 0);
+        (!previousAnnotation && nextStops.length > 0);
 
-      this.signals = nextSignals;
-      this.signalIndex = previousIndex >= 0 ? previousIndex : 0;
+      this.stops = nextStops;
+      this.stopIndex = previousIndex >= 0 ? previousIndex : 0;
       this.lastActiveGroup = activeGroup;
 
       if (routeChanged) this._clearArrival();
@@ -401,22 +400,22 @@
     }
 
     _enforceWaypoint() {
-      if (!this.active || !this.signals.length) return null;
+      if (!this.active || !this.stops.length) return null;
 
-      const signal = this._currentSignal();
-      if (!this._targetIsAvailable(signal.target)) {
+      const stop = this._currentStop();
+      if (!this._targetIsAvailable(stop.target)) {
         this._scheduleRefresh();
         return null;
       }
 
-      const rect = signal.target.getBoundingClientRect();
+      const rect = stop.target.getBoundingClientRect();
       const scrollDirection = this._scrollDirectionForTarget(rect);
       const position = scrollDirection
         ? this._waypointAtViewportEdge(rect, scrollDirection)
-        : this._waypointNearTarget(rect, signal.side);
+        : this._waypointNearTarget(rect, stop.side);
 
       this.neko.setTarget(position.x, position.y);
-      return { ...position, scrollDirection, signal };
+      return { ...position, scrollDirection, stop };
     }
 
     _showBubble(message, duration = this.messageDuration) {
@@ -457,7 +456,7 @@
     }
 
     _clearRecallMarker() {
-      this.recallSignal = null;
+      this.recallStop = null;
       this.recallMarker.hidden = true;
       if (this.recallTimer) {
         clearTimeout(this.recallTimer);
@@ -466,23 +465,23 @@
     }
 
     _trackRecallMarker() {
-      const signal = this.recallSignal;
+      const stop = this.recallStop;
       if (
         !this.active ||
-        !signal ||
-        !this._targetIsAvailable(signal.target)
+        !stop ||
+        !this._targetIsAvailable(stop.target)
       ) {
         this.recallMarker.hidden = true;
         return;
       }
 
-      const rect = signal.target.getBoundingClientRect();
+      const rect = stop.target.getBoundingClientRect();
       if (this._scrollDirectionForTarget(rect)) {
         this.recallMarker.hidden = true;
         return;
       }
 
-      const position = this._waypointNearTarget(rect, signal.side);
+      const position = this._waypointNearTarget(rect, stop.side);
       const markerSize = 28;
       this.recallMarker.hidden = false;
       this.recallMarker.style.left = `${Math.max(
@@ -501,11 +500,11 @@
       )}px`;
     }
 
-    _leaveRecallMarker(signal) {
+    _leaveRecallMarker(stop) {
       this._clearRecallMarker();
-      if (!signal || !this._targetIsAvailable(signal.target)) return;
+      if (!stop || !this._targetIsAvailable(stop.target)) return;
 
-      this.recallSignal = signal;
+      this.recallStop = stop;
       this.recallTimer = setTimeout(
         () => this._clearRecallMarker(),
         this.recallDuration
@@ -564,17 +563,17 @@
 
           if (distance < this.arrivalDistance && !this.arrived) {
             this.arrived = true;
-            this._showBubble(waypoint.signal.message);
-            const spokenSignal = waypoint.signal;
+            this._showBubble(waypoint.stop.message);
+            const spokenStop = waypoint.stop;
 
             this.arrivalTimer = setTimeout(() => {
-              this._leaveRecallMarker(spokenSignal);
-              const spokenIndex = this.signals.findIndex(
-                (signal) => signal.annotation === spokenSignal.annotation
+              this._leaveRecallMarker(spokenStop);
+              const spokenIndex = this.stops.findIndex(
+                (stop) => stop.annotation === spokenStop.annotation
               );
-              this.signalIndex =
+              this.stopIndex =
                 spokenIndex >= 0
-                  ? (spokenIndex + 1) % this.signals.length
+                  ? (spokenIndex + 1) % this.stops.length
                   : 0;
               this.arrived = false;
               this._hideBubble();
@@ -673,7 +672,7 @@
       if (this.active || this.destroyed) return false;
 
       this.refresh({ restart: true });
-      if (!this.signals.length) return false;
+      if (!this.stops.length) return false;
 
       this._stopDockAnimation();
       this._clearArrival();
@@ -719,11 +718,10 @@
     }
 
     _onRecall() {
-      if (!this.active || !this.recallSignal) return;
+      if (!this.active || !this.recallStop) return;
 
-      const recalledIndex = this.signals.findIndex(
-        (signal) =>
-          signal.annotation === this.recallSignal.annotation
+      const recalledIndex = this.stops.findIndex(
+        (stop) => stop.annotation === this.recallStop.annotation
       );
       if (recalledIndex < 0) {
         this._clearRecallMarker();
@@ -734,7 +732,7 @@
         clearTimeout(this.arrivalTimer);
         this.arrivalTimer = null;
       }
-      this.signalIndex = recalledIndex;
+      this.stopIndex = recalledIndex;
       this.arrived = false;
       this.waitingDirection = null;
       this._hideBubble();

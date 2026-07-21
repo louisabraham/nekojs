@@ -15,35 +15,35 @@ title: Neko.js guided companion demo
   </p>
 </div>
 
-<div class="guide-demo-tabs" role="tablist" aria-label="Demo signals">
-  <button type="button" class="is-active" data-guide-demo-tab="signals" role="tab" aria-selected="true">Signals</button>
-  <button type="button" data-guide-demo-tab="details" role="tab" aria-selected="false">Details</button>
+<div class="guide-demo-tabs" role="tablist" aria-label="Demo sections">
+  <button type="button" class="is-active" data-guide-demo-tab="welcome" role="tab" aria-selected="true">Welcome</button>
+  <button type="button" data-guide-demo-tab="explore" role="tab" aria-selected="false">Explore</button>
 </div>
 
-<section id="guide-signals" data-guide-demo-panel="signals" role="tabpanel">
-  <h2>Signals</h2>
+<section id="guide-welcome" data-guide-demo-panel="welcome" role="tabpanel">
+  <h2>Welcome</h2>
   <div class="guide-demo-grid">
-    <article id="guide-priority">
-      <strong>Priority queue</strong>
-      <p>Three items need a decision before work can continue.</p>
+    <article id="guide-introduction">
+      <strong>Introduction</strong>
+      <p>A short welcome helps visitors understand what this page offers.</p>
     </article>
-    <article id="guide-health">
-      <strong>System health</strong>
-      <p>All checks are passing, with one warning to review.</p>
+    <article id="guide-next-step">
+      <strong>Next step</strong>
+      <p>A clear action gives visitors an easy way to continue.</p>
     </article>
   </div>
 </section>
 
-<section id="guide-details" data-guide-demo-panel="details" role="tabpanel" hidden>
-  <h2>Details</h2>
+<section id="guide-explore" data-guide-demo-panel="explore" role="tabpanel" hidden>
+  <h2>Explore</h2>
   <div class="guide-demo-grid">
-    <article id="guide-owner">
-      <strong>Clear ownership</strong>
-      <p>The next action and accountable owner are visible together.</p>
+    <article id="guide-feature">
+      <strong>Featured area</strong>
+      <p>Neko can introduce an important part of any page.</p>
     </article>
-    <article id="guide-evidence">
-      <strong>Linked evidence</strong>
-      <p>Supporting context is one click away from the decision.</p>
+    <article id="guide-resources">
+      <strong>Helpful resources</strong>
+      <p>Useful links and supporting content remain easy to discover.</p>
     </article>
   </div>
 </section>
@@ -58,15 +58,15 @@ title: Neko.js guided companion demo
   </p>
 </section>
 
-<i data-neko-guide data-neko-group="signals" data-neko-target="#guide-priority" data-neko-side="bottom" data-neko-message="This queue is the fastest place to unblock the team."></i>
-<i data-neko-guide data-neko-group="signals" data-neko-target="#guide-health" data-neko-side="left" data-neko-message="The warning is visible without making the healthy checks feel urgent."></i>
-<i data-neko-guide data-neko-group="details" data-neko-target="#guide-owner" data-neko-side="bottom" data-neko-message="The owner sits next to the action, so the handoff is clear."></i>
-<i data-neko-guide data-neko-group="details" data-neko-target="#guide-evidence" data-neko-side="left" data-neko-message="This evidence is close to the decision it supports."></i>
+<i data-neko-guide data-neko-group="welcome" data-neko-target="#guide-introduction" data-neko-side="bottom" data-neko-message="Start here for a quick introduction to the page."></i>
+<i data-neko-guide data-neko-group="welcome" data-neko-target="#guide-next-step" data-neko-side="left" data-neko-message="This is the natural next step when you are ready to continue."></i>
+<i data-neko-guide data-neko-group="explore" data-neko-target="#guide-feature" data-neko-side="bottom" data-neko-message="I can point out a feature without interrupting the page."></i>
+<i data-neko-guide data-neko-group="explore" data-neko-target="#guide-resources" data-neko-side="left" data-neko-message="Helpful resources are easier to find when I lead you there."></i>
 <i data-neko-guide data-neko-target="#guide-finish" data-neko-side="top" data-neko-message="I found this after the page moved. My message is still attached to the element."></i>
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-  let activeGroup = "signals";
+  let activeGroup = "welcome";
   const tabs = Array.from(document.querySelectorAll("[data-guide-demo-tab]"));
   const panels = Array.from(document.querySelectorAll("[data-guide-demo-panel]"));
 
