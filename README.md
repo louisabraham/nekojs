@@ -109,6 +109,7 @@ const guide = createNekoGuide({
   restLabel: "Let the companion rest",
   returningLabel: "The companion is returning to rest",
   recallLabel: "Replay the companion's previous message",
+  recallIcon: "🪝",
   nekoOptions: {
     sprites: companionSprites,
     spriteSize: 48

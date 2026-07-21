@@ -53,6 +53,7 @@
         options.returningLabel || "Neko is returning to rest";
       this.recallLabel =
         options.recallLabel || "Replay Neko's previous message";
+      this.recallIcon = options.recallIcon || "🐾";
       this.destroyNeko = options.destroyNeko !== false;
 
       this.stops = [];
@@ -122,7 +123,10 @@
         this.recallLabel
       );
       this.recallMarker.title = "Replay previous message";
-      this.recallMarker.innerHTML = '<span aria-hidden="true">🐾</span>';
+      const recallIcon = document.createElement("span");
+      recallIcon.setAttribute("aria-hidden", "true");
+      recallIcon.textContent = this.recallIcon;
+      this.recallMarker.appendChild(recallIcon);
       this.recallMarker.setAttribute("aria-expanded", "false");
       this.recallMarker.hidden = true;
       document.body.appendChild(this.recallMarker);
