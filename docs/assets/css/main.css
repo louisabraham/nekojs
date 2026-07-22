@@ -259,6 +259,74 @@ strong {
   font-weight: 600;
 }
 
+/* Guided companion demo */
+.guide-demo-heading {
+  margin-bottom: 2rem;
+}
+
+.guide-demo-heading h1 {
+  margin-top: 0.5rem;
+}
+
+.guide-demo-kicker {
+  margin-bottom: 0;
+  color: var(--link-color);
+  font-family: "Press Start 2P", cursive;
+  font-size: 0.6rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.guide-colour-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(82px, 1fr));
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding: 0 0.25rem 0.75rem;
+}
+
+.guide-colour-card {
+  border: 3px solid var(--guide-colour);
+  border-radius: 10px;
+  background: white;
+  padding: 0.5rem;
+  box-shadow: 4px 4px 0 var(--shadow);
+  text-align: center;
+}
+
+.guide-colour-card span {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  margin-bottom: 0.55rem;
+  border: 2px solid #0f172a;
+  border-radius: 6px;
+  background: var(--guide-colour);
+}
+
+.guide-colour-card strong {
+  display: block;
+  font-size: 0.75rem;
+}
+
+.guide-demo-note {
+  margin-top: 2rem;
+  border: 3px dotted var(--accent-pink);
+  border-radius: 10px;
+  background: var(--bg-secondary);
+  padding: 1rem;
+}
+
+.guide-demo-note p {
+  margin: 0.5rem 0 0;
+}
+
+@media (max-width: 600px) {
+  .guide-colour-grid {
+    grid-template-columns: repeat(7, 90px);
+  }
+}
+
 em {
   color: var(--text-secondary);
   font-style: italic;

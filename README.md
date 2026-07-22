@@ -2,7 +2,7 @@
 
 A JavaScript reimplementation of the classic Neko desktop pet for the web.
 
-[Live Demo](https://louisabraham.github.io/nekojs/) | [Usage](#usage) | [Github](https://github.com/louisabraham/nekojs)
+[Live Demo](https://louisabraham.github.io/nekojs/) | [Guided Demo](https://louisabraham.github.io/nekojs/guide.html) | [Usage](#usage) | [Github](https://github.com/louisabraham/nekojs)
 
 ## About
 
@@ -26,6 +26,7 @@ The original source code (in the `nkosrc4/` folder) was downloaded from [web.arc
 - ⚡ **Lightweight** - ~38KB uncompressed with sprites embedded (brotli compressed to ~14KB)
 - 🚀 **Zero dependencies** - Pure vanilla JavaScript
 - 🖱️ **Interactive** - Click to change behavior modes
+- 💬 **Optional page guide** - Visits annotated elements and explains the page
 
 ## Usage
 
@@ -52,6 +53,109 @@ neko.start();
 neko.stop();
 neko.destroy();
 ```
+
+For integrations that need to direct Neko instead of following the cursor:
+
+```javascript
+neko.setPosition(24, 24); // Move immediately to a viewport position
+neko.setTarget(320, 180); // Run toward a viewport position
+```
+
+### Guided companion mode
+
+`createNekoGuide()` turns the same cat into an opt-in guide for a page. Neko
+rests in the bottom corner with occasional random banter until clicked, then
+visits visible annotations in order. Targets are resolved again after scrolling
+or UI changes, so messages stay attached to the current position of the related
+element.
+
+Add semantic annotations anywhere in the page:
+
+```html
+<section id="welcome-card">...</section>
+
+<i
+  data-neko-guide
+  data-neko-target="#welcome-card"
+  data-neko-side="bottom"
+  data-neko-message="This is a good place to begin."
+></i>
+```
+
+Load the optional guide after `neko.js`, then create it:
+
+```html
+<script src="https://louisabraham.github.io/nekojs/neko.js"></script>
+<script src="https://louisabraham.github.io/nekojs/neko-guide.js"></script>
+<script>
+const guide = createNekoGuide({
+  messageDuration: 6000,
+  recallDuration: 10000,
+  idleMessageDelay: [9000, 18000],
+  nekoOptions: {
+    speed: 18,
+    fps: 60
+  }
+});
+</script>
+```
+
+Custom character packs can reuse the same movement engine by supplying the
+classic 32-frame animation order and a display size:
+
+```javascript
+const guide = createNekoGuide({
+  wakeLabel: "Wake the companion",
+  restLabel: "Let the companion rest",
+  returningLabel: "The companion is returning to rest",
+  recallLabel: "Replay the companion's previous message",
+  recallIcon: "🪝",
+  nekoOptions: {
+    sprites: companionSprites,
+    spriteSize: 48
+  }
+});
+```
+
+The default cat remains 32 pixels. When an off-screen destination makes the
+guide wait at a viewport edge, the matching claw frames are used as climbing
+frames, so themed sprite packs can visibly climb while asking the user to
+scroll. When the active companion is clicked again, it walks back to its dock
+before entering the idle animation cycle.
+
+The annotations are hidden automatically. Each one supports:
+
+| Attribute | Purpose |
+| --- | --- |
+| `data-neko-target` | CSS selector for the element Neko should visit |
+| `data-neko-message` | Message shown when Neko arrives |
+| `data-neko-side` | Preferred placement: `top`, `right`, `bottom`, or `left` |
+| `data-neko-closest` | Optional ancestor selector applied to the target |
+| `data-neko-group` | Optional route group for tabs or other UI states |
+
+For tabbed or filtered interfaces, return the active group and request a route
+refresh whenever the interface changes:
+
+```javascript
+let activeTab = "home";
+
+const guide = createNekoGuide({
+  getActiveGroup: () => activeTab
+});
+
+activeTab = "features";
+window.dispatchEvent(new Event("neko-guide:refresh"));
+```
+
+Elements inside a `hidden` or `aria-hidden="true"` container are skipped
+automatically. When a target is off screen, Neko waits at the corresponding
+viewport edge with a short scroll hint. Hovering a message pauses both its timer
+and Neko's route. After each message, a subtle neutral paw remains for ten
+seconds. Hovering the paw previews the message; selecting it calls Neko back to
+that tour stop.
+
+The returned guide exposes `wake()`, `dock()`, `toggle()`, `refresh()`, and
+`destroy()`. `release()` remains as an alias for `wake()`.
 
 To _build_ (actually just package the sprites), run `python3 build.py` (requires Pillow).
 

@@ -15,6 +15,7 @@ Thumbs.db
 
 # Build artifacts
 docs/neko.js
+docs/neko-guide.js
 docs/README.md
 docs/assets/images/neko-awake.ico
 _site/

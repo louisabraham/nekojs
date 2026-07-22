@@ -110,31 +110,37 @@ def build():
 
     print(f"Converted {len([s for s in sprites_b64 if s])} sprites")
 
-    # Read JavaScript source
-    print("Reading JavaScript source...")
-    js_source = (src_dir / "main.js").read_text()
+    def extract_iife(js_source):
+        """Remove the outer IIFE so source files can share the bundle scope."""
+        lines = js_source.split("\n")
+        in_code = False
+        code_lines = []
 
-    # Extract the main code (remove IIFE wrapper)
-    lines = js_source.split("\n")
-    in_code = False
-    code_lines = []
-
-    for line in lines:
-        stripped = line.strip()
-        if stripped.startswith("(function") and "{" in stripped:
-            in_code = True
-            continue
-        elif stripped in ["})();", "}());"]:
-            in_code = False
-            continue
-        elif in_code:
-            if stripped == "'use strict';" or stripped == '"use strict";':
+        for line in lines:
+            stripped = line.strip()
+            if stripped.startswith("(function") and "{" in stripped:
+                in_code = True
                 continue
-            code_lines.append(line)
+            elif stripped in ["})();", "}());"]:
+                in_code = False
+                continue
+            elif in_code:
+                if stripped == "'use strict';" or stripped == '"use strict";':
+                    continue
+                code_lines.append(line)
+
+        return "\n".join(code_lines)
+
+    # Read JavaScript sources
+    print("Reading JavaScript sources...")
+    main_source = (src_dir / "main.js").read_text()
+    guide_source = (src_dir / "guide.js").read_text()
+
+    # Extract source code from the standalone IIFE wrapper
+    code_js = extract_iife(main_source)
 
     # Format sprites array and code
     sprites_js = ",\n        ".join(f'"{s}"' if s else '""' for s in sprites_b64)
-    code_js = "\n".join(code_lines)
 
     # Create bundled output using template
     print("Creating bundle...")
@@ -160,9 +166,9 @@ def build():
 {code_js}
 
     // Auto-initialize function
-    window.createNeko = function(options) {{
+    window.createNeko = function(options = {{}}) {{
         const neko = new Neko(options);
-        neko.setSprites(NEKO_SPRITES);
+        neko.setSprites(options.sprites || NEKO_SPRITES);
         neko.start();
         return neko;
     }};
@@ -185,10 +191,18 @@ def build():
     print(f"Writing to {output_path}...")
     output_path.write_text(template)
 
-    # Get file size
-    size_kb = output_path.stat().st_size / 1024
-    print(f"Done! Output size: {size_kb:.1f} KB")
+    # Keep the optional guide separate so the classic bundle stays lightweight.
+    guide_output_path = docs_dir / "neko-guide.js"
+    print(f"Writing to {guide_output_path}...")
+    guide_output_path.write_text(guide_source)
+
+    # Get file sizes
+    neko_size_kb = output_path.stat().st_size / 1024
+    guide_size_kb = guide_output_path.stat().st_size / 1024
+    print(f"Done! Neko bundle size: {neko_size_kb:.1f} KB")
+    print(f"Done! Guide add-on size: {guide_size_kb:.1f} KB")
     print(f"Output written to: {output_path}")
+    print(f"Output written to: {guide_output_path}")
 
 
 if __name__ == "__main__":

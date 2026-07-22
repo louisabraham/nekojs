@@ -60,6 +60,7 @@
       // Original used 16 pixels/tick for 640x480 screens (~2.5% of width)
       // Modern screens are ~3x larger, so default to 24 for similar feel
       this.speed = options.speed || 24;
+      this.spriteSize = Math.max(16, Number(options.spriteSize) || SPRITE_SIZE);
       this.behaviorMode = options.behaviorMode || BehaviorMode.CHASE_MOUSE;
       this.idleThreshold = options.idleThreshold || 6; // Original m_dwIdleSpace = 6
 
@@ -87,8 +88,9 @@
       this.moveDY = 0;
 
       // Bounds - clientWidth excludes scrollbar, innerHeight is viewport height
-      this.boundsWidth = document.documentElement.clientWidth - SPRITE_SIZE;
-      this.boundsHeight = window.innerHeight - SPRITE_SIZE;
+      this.boundsWidth =
+        document.documentElement.clientWidth - this.spriteSize;
+      this.boundsHeight = window.innerHeight - this.spriteSize;
 
       // Mouse tracking - null until first mouse event
       // This prevents neko from running somewhere before user moves mouse
@@ -142,8 +144,8 @@
       this.element.className = "neko";
       this.element.style.cssText = `
         position: fixed;
-        width: ${SPRITE_SIZE}px;
-        height: ${SPRITE_SIZE}px;
+        width: ${this.spriteSize}px;
+        height: ${this.spriteSize}px;
         image-rendering: pixelated;
         pointer-events: ${this.allowBehaviorChange ? "auto" : "none"};
         cursor: ${this.allowBehaviorChange ? "pointer" : "default"};
@@ -204,8 +206,9 @@
 
       // Update bounds on resize
       window.addEventListener("resize", () => {
-        this.boundsWidth = document.documentElement.clientWidth - SPRITE_SIZE;
-        this.boundsHeight = window.innerHeight - SPRITE_SIZE;
+        this.boundsWidth =
+          document.documentElement.clientWidth - this.spriteSize;
+        this.boundsHeight = window.innerHeight - this.spriteSize;
       });
 
       // Random starting position within viewport
@@ -216,8 +219,8 @@
       this.prevLogicX = this.x;
       this.prevLogicY = this.y;
       // Initialize target to current position (so no initial movement)
-      this.targetX = this.x + SPRITE_SIZE / 2;
-      this.targetY = this.y + SPRITE_SIZE - 1;
+      this.targetX = this.x + this.spriteSize / 2;
+      this.targetY = this.y + this.spriteSize - 1;
       this.oldTargetX = this.targetX;
       this.oldTargetY = this.targetY;
       this.updatePosition();
@@ -277,6 +280,28 @@
     updatePosition() {
       this.element.style.left = Math.round(this.x) + "px";
       this.element.style.top = Math.round(this.y) + "px";
+    }
+
+    setPosition(x, y) {
+      const nextX = Math.max(0, Math.min(this.boundsWidth, x));
+      const nextY = Math.max(0, Math.min(this.boundsHeight, y));
+      this.x = nextX;
+      this.y = nextY;
+      this.logicX = nextX;
+      this.logicY = nextY;
+      this.prevLogicX = nextX;
+      this.prevLogicY = nextY;
+      this.targetX = nextX + this.spriteSize / 2;
+      this.targetY = nextY + this.spriteSize - 1;
+      this.oldTargetX = this.targetX;
+      this.oldTargetY = this.targetY;
+      this.updatePosition();
+    }
+
+    setTarget(x, y) {
+      this.mouseX = x;
+      this.mouseY = y;
+      this.hasMouseMoved = true;
     }
 
     update() {
@@ -346,8 +371,8 @@
       if (!this.hasMouseMoved) {
         // Just idle in place - pass target that results in zero movement
         this.runTowards(
-          this.logicX + SPRITE_SIZE / 2,
-          this.logicY + SPRITE_SIZE - 1
+          this.logicX + this.spriteSize / 2,
+          this.logicY + this.spriteSize - 1
         );
         return;
       }
@@ -358,16 +383,16 @@
       // Don't run away until mouse has moved
       if (!this.hasMouseMoved) {
         this.runTowards(
-          this.logicX + SPRITE_SIZE / 2,
-          this.logicY + SPRITE_SIZE - 1
+          this.logicX + this.spriteSize / 2,
+          this.logicY + this.spriteSize - 1
         );
         return;
       }
 
       // Original uses m_dwIdleSpace * 16 as the trigger distance
       const dwLimit = this.idleThreshold * 16;
-      const xdiff = this.logicX + SPRITE_SIZE / 2 - this.mouseX;
-      const ydiff = this.logicY + SPRITE_SIZE / 2 - this.mouseY;
+      const xdiff = this.logicX + this.spriteSize / 2 - this.mouseX;
+      const ydiff = this.logicY + this.spriteSize / 2 - this.mouseY;
 
       if (Math.abs(xdiff) < dwLimit && Math.abs(ydiff) < dwLimit) {
         // Mouse cursor is too close - run away
@@ -377,7 +402,7 @@
           targetX = this.logicX + (xdiff / dLength) * dwLimit;
           targetY = this.logicY + (ydiff / dLength) * dwLimit;
         } else {
-          targetX = targetY = 32;
+          targetX = targetY = this.spriteSize;
         }
         this.runTowards(targetX, targetY);
         // Skip awake animation like original
@@ -415,18 +440,21 @@
       // Corners offset by sprite size (matching original)
       // Target positions that result in neko stopping at the corners
       const corners = [
-        [SPRITE_SIZE + SPRITE_SIZE / 2, SPRITE_SIZE + SPRITE_SIZE - 1],
         [
-          SPRITE_SIZE + SPRITE_SIZE / 2,
-          this.boundsHeight - SPRITE_SIZE + SPRITE_SIZE - 1,
+          this.spriteSize + this.spriteSize / 2,
+          this.spriteSize + this.spriteSize - 1,
         ],
         [
-          this.boundsWidth - SPRITE_SIZE + SPRITE_SIZE / 2,
-          this.boundsHeight - SPRITE_SIZE + SPRITE_SIZE - 1,
+          this.spriteSize + this.spriteSize / 2,
+          this.boundsHeight - this.spriteSize + this.spriteSize - 1,
         ],
         [
-          this.boundsWidth - SPRITE_SIZE + SPRITE_SIZE / 2,
-          SPRITE_SIZE + SPRITE_SIZE - 1,
+          this.boundsWidth - this.spriteSize + this.spriteSize / 2,
+          this.boundsHeight - this.spriteSize + this.spriteSize - 1,
+        ],
+        [
+          this.boundsWidth - this.spriteSize + this.spriteSize / 2,
+          this.spriteSize + this.spriteSize - 1,
         ],
       ];
 
@@ -485,8 +513,8 @@
       this.targetY = targetY;
 
       // Calculate distance to target (using logic position, not display position)
-      const dx = targetX - this.logicX - SPRITE_SIZE / 2; // Stop in middle of cursor
-      const dy = targetY - this.logicY - SPRITE_SIZE + 1; // Just above cursor
+      const dx = targetX - this.logicX - this.spriteSize / 2; // Stop in middle of cursor
+      const dy = targetY - this.logicY - this.spriteSize + 1; // Just above cursor
       const distance = Math.sqrt(dx * dx + dy * dy);
 
       // Calculate movement delta (like original m_nDX, m_nDY)
